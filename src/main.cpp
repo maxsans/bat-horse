@@ -12,6 +12,7 @@
 #include <stdio.h>
 
 extern "C" void app_main(void) {
+  vTaskDelay(2000 / portTICK_PERIOD_MS);
   printf("Hello world!\n");
   /* Print chip information */
   esp_chip_info_t chip_info;
