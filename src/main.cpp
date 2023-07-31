@@ -16,55 +16,19 @@
 #include <cmath>
 #include <driver/i2c.h>
 
-#include "mpu6050.hpp"
-#include "kalmanfilter.hpp"
+#include "mainMPU.hpp"
 
-TaskHandle_t taskHandle1, taskHandle2, taskHandle3, taskHandle4 = NULL;
-
-static void mpu6050_task(void *pvParameters)
-{
-  MPU6050 mpu(GPIO_NUM_7, GPIO_NUM_6, I2C_NUM_0);
-  vTaskDelay(1000 / portTICK_PERIOD_MS);
-
-  if (!mpu.init())
-  {
-    ESP_LOGE("mpu6050", "init failed!");
-    vTaskDelete(0);
-  }
-  ESP_LOGI("mpu6050", "init success!");
-
-  float ax, ay, az, gx, gy, gz;
-  float pitch, roll;
-  float fpitch, froll;
-
-  KALMAN pfilter(0.005);
-  KALMAN rfilter(0.005);
-
-  while (1)
-  {
-
-    ax = -mpu.getAccX();
-    ay = -mpu.getAccY();
-    az = -mpu.getAccZ();
-    gx = mpu.getGyroX();
-    gy = mpu.getGyroY();
-    gz = mpu.getGyroZ();
-    pitch = static_cast<float>(atan(ax / az) * 57.2958);
-    roll = static_cast<float>(atan(ay / az) * 57.2958);
-    fpitch = pfilter.filter(pitch, gy);
-    froll = rfilter.filter(roll, -gx);
-    ESP_LOGI("mpu6050", "Acc: ( %.3f, %.3f, %.3f)", ax, ay, az);
-    ESP_LOGI("mpu6050", "Gyro: ( %.3f, %.3f, %.3f)", gx, gy, gz);
-    ESP_LOGI("mpu6050", "Pitch: %.3f", pitch);
-    ESP_LOGI("mpu6050", "Roll: %.3f", roll);
-    ESP_LOGI("mpu6050", "FPitch: %.3f", fpitch);
-    ESP_LOGI("mpu6050", "FRoll: %.3f", froll);
-  }
-  vTaskDelete(NULL);
-}
+// TaskHandle_t taskHandle1 = NULL;
 
 extern "C" void app_main()
 {
   vTaskDelay(4000 / portTICK_PERIOD_MS);
-  xTaskCreatePinnedToCore(&mpu6050_task, "mpu6050_task", 4048, NULL, 5, NULL, 0);
+  // On lance la tache qui va recupérer les données du capteur
+  xTaskCreate(
+      startMPU,   /* Task function. */
+      "startMPU", /* name of task. */
+      4048,       /* Stack size of task */
+      NULL,       /* parameter of the task */
+      5,          /* priority of the task */
+      NULL);      /* Task handle to keep track of created task */
 }
