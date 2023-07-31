@@ -44,27 +44,24 @@ bool MPU6050::init()
 {
     if (!i2c->slave_write(MPU6050_ADDR, PWR_MGMT_1, 0x00))
     {
-        printf("function init 1");
         return false;
     }
     if (!i2c->slave_write(MPU6050_ADDR, SMPLRT_DIV, 0x07))
     {
-        printf("function init 2");
         return false;
     }
-    if (!i2c->slave_write(MPU6050_ADDR, CONFIG, 0x07)){
-        printf("function init 3");
+    if (!i2c->slave_write(MPU6050_ADDR, CONFIG, 0x07))
+    {
         return false;
     }
-    if (!i2c->slave_write(MPU6050_ADDR, GYRO_CONFIG, 0x18)){
-        printf("function init 4");
+    if (!i2c->slave_write(MPU6050_ADDR, GYRO_CONFIG, 0x18))
+    {
         return false;
     }
-    if (!i2c->slave_write(MPU6050_ADDR, ACCEL_CONFIG, 0x01)){
-        printf("function init 5");
+    if (!i2c->slave_write(MPU6050_ADDR, ACCEL_CONFIG, 0x01))
+    {
         return false;
     }
-    printf("init OK\n");
     return true;
 }
 
