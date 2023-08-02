@@ -1,4 +1,8 @@
 
+#include "wifi.hpp"
+#include "../../include/globals.hpp"
+#include "espnow.hpp"
+
 #include <esp_check.h>
 #include <esp_event.h>
 #include <esp_log.h>
@@ -21,13 +25,13 @@ static const char *TAG_AP = "WIFI ACCESS POINT";
 /*
     Wifi configurations
 */
-#define ESP_WIFI_STA_SSID "Redmi"
-#define ESP_WIFI_STA_PASS "maxlefou"
+#define ESP_WIFI_STA_SSID WIFI_STA_SSID
+#define ESP_WIFI_STA_PASS WIFI_STA_PASS
 #define ESP_MAXIMUM_RETRY 10
 
-#define ESP_WIFI_AP_SSID "ESP_WIFI"
-#define ESP_WIFI_AP_PASS "12345678"
-#define ESP_WIFI_AP_CHANNEL 1
+#define ESP_WIFI_AP_SSID WIFI_AP_SSID
+#define ESP_WIFI_AP_PASS WIFI_AP_PASS
+#define ESP_WIFI_AP_CHANNEL WIFI_AP_CHANNEL
 #define MAX_STA_CONN 8
 
 #define ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD WIFI_AUTH_WPA2_PSK
@@ -55,6 +59,7 @@ static void wifi_sta_event_handler(void *arg, esp_event_base_t event_base,
         {
             esp_wifi_connect();
         }
+        espNow::setReadyToSend(false);
     }
     else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP)
     {
@@ -163,9 +168,9 @@ namespace ap
 
 namespace wifi
 {
-
-    esp_err_t init()
+    esp_err_t init(wifiMode mode)
     {
+        ESP_LOGI(TAG, "Initializing wifi interface ...");
         ESP_ERROR_CHECK(esp_netif_init());
         ESP_ERROR_CHECK(esp_event_loop_create_default());
         wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
@@ -173,7 +178,7 @@ namespace wifi
                             "failed to init the wifi configuration");
         esp_err_t errSta = sta::init();
         esp_err_t errAp = ap::init();
-        ESP_RETURN_ON_ERROR(esp_wifi_set_mode(WIFI_MODE_APSTA), TAG,
+        ESP_RETURN_ON_ERROR(esp_wifi_set_mode(static_cast<wifi_mode_t>(mode)), TAG,
                             "Failed to set wifi mode");
         if (errAp != ESP_OK)
         {
@@ -183,12 +188,17 @@ namespace wifi
         {
             return errSta;
         }
+        ESP_LOGI(TAG, "Initializing wifi interface done");
         return ESP_OK;
     }
     esp_err_t start()
     {
+        ESP_LOGI(TAG, "Starting wifi interface ...");
+
         ESP_RETURN_ON_ERROR(esp_wifi_start(), TAG,
                             "Failed to start the wifi interface");
+
+        ESP_LOGI(TAG, "Starting wifi interface done");
         return ESP_OK;
     }
 } // namespace wifi
