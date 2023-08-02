@@ -12,6 +12,7 @@
 #include "flash.hpp"
 #include "espnow.hpp"
 #include "wifi.hpp"
+#include "mainMPU.hpp"
 
 #include <esp_chip_info.h>
 #include <esp_err.h>
@@ -26,6 +27,11 @@
 #include <iostream>
 
 static const char *TAG = "Main";
+
+void callbackMpu(std::string data)
+{
+  printf("ok callback ");
+}
 
 void callback(std::string name, std::string src)
 {
@@ -49,6 +55,9 @@ extern "C" void app_main(void)
 
   wifi::init(static_cast<wifi::wifiMode>(WIFI_MODE));
   wifi::start();
+
+  mpu::init(&callbackMpu);
+  mpu::start();
 
   espNow::init(&callback);
   espNow::start();
