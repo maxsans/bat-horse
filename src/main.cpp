@@ -8,18 +8,21 @@
 #include <freertos/task.h>
 #include <freertos/semphr.h>
 #include <sdkconfig.h>
+#include <string>
 
 #include "mainMPU.hpp"
 
 SemaphoreHandle_t xBinarySemaphore = NULL;
-// TaskHandle_t taskHandle1 = NULL;
+
+void callBack(std::string str)
+{
+  printf("data %s\n", str.c_str());
+}
 
 extern "C" void app_main()
 {
   vTaskDelay(4000 / portTICK_PERIOD_MS);
-  // Interruption
-
   // On lance la tache qui va recupérer les données du capteur
-  mpu::init();
+  mpu::init(callBack);
   mpu::start();
 }

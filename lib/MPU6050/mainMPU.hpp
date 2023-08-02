@@ -1,5 +1,8 @@
 #pragma once
 
+#include <functional>
+#include <string>
+
 
 namespace mpu
 {
@@ -8,7 +11,7 @@ namespace mpu
      *
      * @return if succesful retunr ESP_OK, ESP_ERR otherwise
      */
-    esp_err_t init(void);
+    esp_err_t init(std::function<void(std::string)> callBack);
 
     /**
      * @brief start the mpu driver

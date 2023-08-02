@@ -62,6 +62,40 @@ bool MPU6050::init()
     {
         return false;
     }
+
+    //set threshold to 1
+    if (!i2c->slave_write(MPU6050_ADDR, MPU6050_MOT_THR, 0x01))
+    {
+        return false;
+    }
+
+    //set detection duration to 20ms
+    if (!i2c->slave_write(MPU6050_ADDR, MPU6050_MOT_DUR, 0x14))
+    {
+        return false;
+    }
+
+    uint8_t bufPinConf = 0;
+    if (!i2c->slave_read(MPU6050_ADDR, INT_PIN_CFG, &bufPinConf, 1))
+    {
+        return false;
+    }
+    bufPinConf ^= 1 << 7;
+    bufPinConf ^= 1 << 5;
+    if (!i2c->slave_write(MPU6050_ADDR, INT_PIN_CFG, bufPinConf))
+    {
+        return false;
+    }
+    uint8_t bufPinIntr = 0;
+    if (!i2c->slave_read(MPU6050_ADDR, INT_ENABLE, &bufPinIntr, 1))
+    {
+        return false;
+    }
+    bufPinIntr ^= 1 << 6;
+    if (!i2c->slave_write(MPU6050_ADDR, INT_ENABLE, bufPinIntr))
+    {
+        return false;
+    }
     return true;
 }
 
@@ -118,4 +152,20 @@ short MPU6050::getTemp()
     uint8_t r[0];
     i2c->slave_read(MPU6050_ADDR, TEMP_OUT_H, r, 2);
     return r[0] << 8 | r[1];
+}
+
+bool MPU6050::getInter()
+{
+    uint8_t r;
+    i2c->slave_read(MPU6050_ADDR, INT_STATUS, &r, 1);
+    // printf("uint : %d\n", r[0]);
+    bool resp = (r >> 6) & 1;
+    if (resp)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
 }
