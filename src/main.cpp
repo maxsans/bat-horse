@@ -13,6 +13,7 @@
 #include "espnow.hpp"
 #include "wifi.hpp"
 #include "mainMPU.hpp"
+#include "mqtt.hpp"
 
 #include <esp_chip_info.h>
 #include <esp_err.h>
@@ -25,20 +26,101 @@
 #include <stdio.h>
 #include <string>
 #include <iostream>
+#include <cJSON.h>
+#include <sstream>
+#include <iomanip>
 
 static const char *TAG = "Main";
 
+void callbackDevicesBase(std::vector<espNow::SensorData> sensorList)
+{
+  printf("Callback devices connected :\n");
+  for (auto sensorData : sensorList)
+  {
+    printf("\t- %s\n", sensorData.sensorName.c_str());
+  }
+  cJSON *jsonRoot = cJSON_CreateObject();
+  for (auto sensorData : sensorList)
+  {
+    std::ostringstream stream;
+    for (size_t i = 0; i < sensorData.sensorAddress.size(); ++i)
+    {
+      // Utilise std::setw et std::setfill pour formater chaque octet en hexadécimal avec deux chiffres
+      stream << std::setw(2) << std::setfill('0') << std::hex << static_cast<int>(sensorData.sensorAddress[i]);
+
+      // Ajoute le caractère ':' sauf pour le dernier octet
+      if (i < sensorData.sensorAddress.size() - 1)
+      {
+        stream << ":";
+      }
+    }
+    std::string macAddrStr = stream.str();
+    cJSON *jsonObject = cJSON_CreateObject();
+    cJSON_AddNumberToObject(jsonObject, "id", sensorData.sensorId);
+    cJSON_AddStringToObject(jsonObject, "name", sensorData.sensorName.c_str());
+    cJSON_AddStringToObject(jsonObject, "address mac", macAddrStr.c_str());
+    cJSON_AddItemToArray(jsonRoot, jsonObject);
+  }
+  char *jsonChar = cJSON_Print(jsonRoot);
+  std::string jsonStr = jsonChar;
+  std::string topic = "bat-horse/devices";
+
+  mqtt::publish(topic, jsonStr);
+
+  free(jsonChar);
+  cJSON_Delete(jsonRoot);
+}
+
 void callbackMpu(std::string data)
 {
-  printf("ok callback ");
+  espNow::sendDataSensor(data);
 }
 
-void callback(std::string name, std::string src)
+void callback(std::string name, std::string data)
 {
-  printf("ok callback ");
+  printf("%s\n", data.c_str());
+#if IS_BASE
+  std::string topic = "bat-horse/" + name;
+  mqtt::publish(topic, data);
+#endif
 }
 
-extern "C" void app_main(void)
+void recordCallback(std::string topic, std::string data)
+{
+  printf("%s: %s\n", topic.c_str(), data.c_str());
+  cJSON *jsonRoot = cJSON_Parse(data.c_str());
+  if (jsonRoot == NULL)
+  {
+    ESP_LOGE(TAG, "failed to parse JSON root");
+    return;
+  }
+  cJSON *jsonRecord = cJSON_GetObjectItem(jsonRoot, "record");
+  if (jsonRecord == NULL)
+  {
+    ESP_LOGE(TAG, "failed to parse JSON record");
+    return;
+  }
+  if (cJSON_IsBool(jsonRecord))
+  {
+    bool jsonBool = cJSON_IsTrue(jsonRecord);
+
+    if (jsonBool)
+    {
+      espNow::startMeasurement();
+    }
+    else
+    {
+      espNow::stopMeasurement();
+    }
+  }
+  else
+  {
+    ESP_LOGE(TAG, "Error parsing json bool in topic %s", topic.c_str());
+  }
+}
+
+extern "C" void
+app_main(void)
 {
   vTaskDelay(2000 / portTICK_PERIOD_MS);
   printf("\n\e[1;35m---------------------------------------------------------------------------------------------------------\e[0m\n");
@@ -55,20 +137,16 @@ extern "C" void app_main(void)
 
   wifi::init(static_cast<wifi::wifiMode>(WIFI_MODE));
   wifi::start();
-
-  mpu::init(&callbackMpu);
-  mpu::start();
-
-  espNow::init(&callback);
-  espNow::start();
-  int i = 0;
 #if !IS_BASE
-  for (;;)
-  {
-    std::string myString = std::to_string(i);
-    espNow::sendDataSensor(myString);
-    vTaskDelay(7 / portTICK_PERIOD_MS);
-    i++;
-  }
+  mpu::init(callbackMpu);
+  mpu::start();
+#else
+  mqtt::init();
+  mqtt::start();
+  std::string topicRecord = RECORD_TOPIC;
+  mqtt::subscribe(topicRecord, recordCallback);
 #endif
+
+  espNow::init(callback, callbackDevicesBase);
+  espNow::start();
 }
