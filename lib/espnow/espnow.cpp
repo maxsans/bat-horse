@@ -13,7 +13,6 @@
 #include <functional>
 #include <string.h>
 #include <map>
-#include <chrono>
 #include <cJSON.h>
 #include <string>
 
@@ -28,7 +27,9 @@ typedef enum
 typedef enum
 {
     ESP_NOW_QUERY_SOMEONE,
-    ESP_NOW_QUERY_CONNECT_TO_THE_BASE
+    ESP_NOW_QUERY_CONNECT_TO_THE_BASE,
+    ESP_NOW_QUERY_START_MEASUREMENT,
+    ESP_NOW_QUERY_STOP_MEASUREMENT,
 } espNowQuery_e;
 
 typedef enum
@@ -55,28 +56,19 @@ typedef struct
 
 bool readyToSend = false;
 
-struct SensorData
-{
-    int sensorId;
-    std::string sensorName;
-    std::vector<uint8_t> sensorAddress;
-};
+bool isRecording = false;
 
-static std::vector<SensorData> sensorList;
+static std::vector<espNow::SensorData> sensorList;
 
 std::vector<uint8_t> base;
-
-// Définition du type de l'horodatage (en millisecondes depuis le démarrage du programme)
-using Timestamp = std::chrono::time_point<std::chrono::steady_clock>;
-
-// Dictionnaire pour stocker le dernier moment d'envoi de chaque ESP
-static std::map<std::vector<uint8_t>, Timestamp> lastDataTime;
 
 static std::vector<uint8_t> broadcastAddress = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
 static std::function<void(std::string, std::string)> callbackFunctionOnReceiveData;
 
-QueueHandle_t receiveQueue = xQueueCreate(10, sizeof(espNowEvent_t));
+std::function<void(std::vector<espNow::SensorData>)> callbackConnectedSensor;
+
+QueueHandle_t receiveQueue = xQueueCreate(50, sizeof(espNowEvent_t));
 
 static void callbackOnReceiveData(const esp_now_recv_info_t *esp_now_info, const uint8_t *data, int data_len)
 {
@@ -112,25 +104,6 @@ static void callbackOnSendData(const uint8_t *mac_addr, esp_now_send_status_t st
 {
 }
 
-// Fonction pour vérifier si un ESP est inactif
-bool isEspInactive(const std::vector<uint8_t> &espName, int inactiveThresholdMs)
-{
-
-    Timestamp now = std::chrono::steady_clock::now();
-    if (lastDataTime.find(espName) == lastDataTime.end())
-    {
-        // L'ESP n'a jamais envoyé de données auparavant, il est considéré comme inactif
-        return true;
-    }
-    Timestamp lastTime = lastDataTime[espName];
-    return (now - lastTime) > std::chrono::milliseconds(inactiveThresholdMs);
-}
-
-void updateLastDataTime(const std::vector<uint8_t> &espAddr)
-{
-    lastDataTime[espAddr] = std::chrono::steady_clock::now();
-}
-
 esp_err_t espNowPeer(std::vector<uint8_t> address)
 {
     if (esp_now_is_peer_exist(address.data()))
@@ -150,7 +123,7 @@ esp_err_t espNowPeer(std::vector<uint8_t> address)
         return ESP_FAIL;
     }
     memset(peer, 0, sizeof(esp_now_peer_info_t));
-    peer->channel = WIFI_AP_CHANNEL;
+    peer->channel = WIFI_PEER_CHANNEL;
 #if IS_BASE
     peer->ifidx = static_cast<wifi_interface_t>(ESP_IF_WIFI_AP);
 #else
@@ -166,16 +139,13 @@ esp_err_t espNowPeer(std::vector<uint8_t> address)
     return ESP_OK;
 }
 
-static bool isSameSensorName(const std::string &nameToFind, const std::vector<uint8_t> &addMac)
+static bool isNameAlreadyExist(const std::string &nameToFind)
 {
     for (const auto &sensorData : sensorList)
     {
         if (sensorData.sensorName == nameToFind)
         {
-            if (sensorData.sensorAddress != addMac)
-            {
-                return true;
-            }
+            return true;
         }
     }
     return false;
@@ -232,17 +202,33 @@ static esp_err_t connectToTheBaseRequest(std::vector<uint8_t> &srcAddr, std::str
         response.push_back(query);
         response.push_back(ESP_NOW_RESPONSE_FAIL);
     }
-    else if (isSameSensorName(sensorNameValue, srcAddr))
+    else if (isNameAlreadyExist(sensorNameValue))
     {
-        ESP_LOGE(TAG, "Error the sensor name already exist");
-        response.push_back(query);
-        response.push_back(ESP_NOW_RESPONSE_FAIL);
+        for (const auto &sensorData : sensorList)
+        {
+            if (sensorData.sensorName == sensorNameValue)
+            {
+                if (sensorData.sensorAddress == srcAddr)
+                {
+                    ESP_LOGI(TAG, "already added sensor name : %s", sensorNameValue.c_str());
+                    response.push_back(query);
+                    response.push_back(ESP_NOW_RESPONSE_OK);
+                }
+                else
+                {
+                    ESP_LOGE(TAG, "Error the sensor name already exist");
+                    response.push_back(query);
+                    response.push_back(ESP_NOW_RESPONSE_FAIL);
+                }
+            }
+        }
     }
     else
     {
         ESP_LOGI(TAG, "added a new sensor name : %s", sensorNameValue.c_str());
-        SensorData sensor = {.sensorId = static_cast<int>(sensorList.size()), .sensorName = sensorNameValue, .sensorAddress = srcAddr};
+        espNow::SensorData sensor = {.sensorId = static_cast<int>(sensorList.size()), .sensorName = sensorNameValue, .sensorAddress = srcAddr};
         sensorList.push_back(sensor);
+        callbackConnectedSensor(sensorList);
         response.push_back(query);
         response.push_back(ESP_NOW_RESPONSE_OK);
     }
@@ -257,28 +243,6 @@ esp_err_t sendDataToTheBase(std::vector<uint8_t> data)
         return sendData(ESP_NOW_TYPE_DATA, base, data);
     }
     return ESP_FAIL;
-}
-
-static esp_err_t parsingJSON(std::string data)
-{
-    cJSON *jsonObject = cJSON_Parse(data.c_str());
-    if (jsonObject == nullptr)
-    {
-        ESP_LOGE(TAG, "Error when parsing JSON");
-        return ESP_FAIL;
-    }
-
-    // Vérifier si les champs sont corrects (exemple avec un champ "valeur")
-    cJSON *valeurField = cJSON_GetObjectItem(jsonObject, "valeur");
-    if (valeurField == nullptr || !cJSON_IsNumber(valeurField))
-    {
-        ESP_LOGE(TAG, "Error when parsing JSON object : valeur");
-        cJSON_Delete(jsonObject);
-        return ESP_FAIL;
-    }
-    cJSON_Delete(jsonObject);
-
-    return ESP_OK;
 }
 
 static void receiveTask(void *pvParameter)
@@ -312,17 +276,13 @@ static void receiveTask(void *pvParameter)
                 case ESP_NOW_TYPE_DATA:
                 {
                     std::string data(receiveData.begin(), receiveData.end());
-                    printf("data : %s\n", data.c_str());
-                    // if (parsingJSON(data) == ESP_OK)
-                    // {
-                    //     for (const auto &sensorData : sensorList)
-                    //     {
-                    //         if (sensorData.sensorAddress == srcAddr)
-                    //         {
-                    //             callbackFunctionOnReceiveData(sensorData.sensorName, data);
-                    //         }
-                    //     }
-                    // }
+                    for (const auto &sensorData : sensorList)
+                    {
+                        if (sensorData.sensorAddress == srcAddr && isRecording)
+                        {
+                            callbackFunctionOnReceiveData(sensorData.sensorName, data);
+                        }
+                    }
                 }
                 break;
 
@@ -340,6 +300,25 @@ static void receiveTask(void *pvParameter)
 #if IS_BASE
                     if (receiveData[0] == ESP_NOW_QUERY_CONNECT_TO_THE_BASE)
                     {
+                        uint8_t query = receiveData[0];
+                        receiveData.erase(receiveData.begin());
+                        std::string dataString(receiveData.begin(), receiveData.end());
+                        connectToTheBaseRequest(srcAddr, dataString, query);
+                    }
+#else
+                    if (receiveData[0] == ESP_NOW_QUERY_START_MEASUREMENT)
+                    {
+                        isRecording = true;
+                        ESP_LOGI(TAG, "start measurement");
+                        uint8_t query = receiveData[0];
+                        receiveData.erase(receiveData.begin());
+                        std::string dataString(receiveData.begin(), receiveData.end());
+                        connectToTheBaseRequest(srcAddr, dataString, query);
+                    }
+                    if (receiveData[0] == ESP_NOW_QUERY_STOP_MEASUREMENT)
+                    {
+                        isRecording = false;
+                        ESP_LOGI(TAG, "stop measurement");
                         uint8_t query = receiveData[0];
                         receiveData.erase(receiveData.begin());
                         std::string dataString(receiveData.begin(), receiveData.end());
@@ -429,20 +408,21 @@ static void connectBaseTask(void *pvParameter)
             }
             cJSON_Delete(jsonObject);
         }
-        vTaskDelay(1000 * 2 / portTICK_PERIOD_MS);
+        vTaskDelay(1000 * 4 / portTICK_PERIOD_MS);
     }
 }
 
 namespace espNow
 {
-    esp_err_t init(std::function<void(std::string, std::string)> callbackFunction)
+    esp_err_t init(std::function<void(std::string, std::string)> callbackFunction, std::function<void(std::vector<SensorData>)> callbackFunctionConnectedSensor)
     {
+        callbackConnectedSensor = callbackFunctionConnectedSensor;
         callbackFunctionOnReceiveData = callbackFunction;
         ESP_RETURN_ON_ERROR(esp_now_init(), TAG, "failed to initialize esp now");
         ESP_RETURN_ON_ERROR(esp_now_register_recv_cb(callbackOnReceiveData), TAG, "failed to register receive callback");
         ESP_RETURN_ON_ERROR(esp_now_register_send_cb(callbackOnSendData), TAG, "failed to register receive callback");
 
-        xTaskCreate(receiveTask, "esp_now_receive_task", 4048, NULL, 10, NULL);
+        xTaskCreate(receiveTask, "esp_now_receive_task", 4048, NULL, 3, NULL);
         return ESP_OK;
     }
 
@@ -484,5 +464,52 @@ namespace espNow
     {
         readyToSend = value;
     }
-
+    esp_err_t deletePeerAddress(std::vector<uint8_t> &macAddr)
+    {
+        for (int i = 0; i < sensorList.size(); i++)
+        {
+            if (sensorList[i].sensorAddress == macAddr)
+            {
+                sensorList.erase(sensorList.begin() + i);
+                callbackConnectedSensor(sensorList);
+                return ESP_OK;
+            }
+        }
+        ESP_LOGE(TAG, "deletePeerAddress failed the sensor address does not exist in the peer list");
+        return ESP_FAIL;
+    }
+    esp_err_t startMeasurement()
+    {
+        ESP_LOGI(TAG, "start measurement");
+        isRecording = true;
+        for (auto &sensor : sensorList)
+        {
+            std::vector<uint8_t> buffer = {ESP_NOW_QUERY_START_MEASUREMENT};
+            esp_err_t err = sendData(ESP_NOW_TYPE_QUERY, sensor.sensorAddress, buffer);
+            if (err != ESP_OK)
+            {
+                ESP_LOGE(TAG, "failed to send the query start measurement to sensor %s", sensor.sensorName.c_str());
+            }
+        }
+        return ESP_OK;
+    }
+    esp_err_t stopMeasurement()
+    {
+        ESP_LOGI(TAG, "stop measurement");
+        isRecording = false;
+        for (auto &sensor : sensorList)
+        {
+            std::vector<uint8_t> buffer = {ESP_NOW_QUERY_STOP_MEASUREMENT};
+            esp_err_t err = sendData(ESP_NOW_TYPE_QUERY, sensor.sensorAddress, buffer);
+            if (err != ESP_OK)
+            {
+                ESP_LOGE(TAG, "failed to send the query stop measurement to sensor %s", sensor.sensorName.c_str());
+            }
+        }
+        return ESP_OK;
+    }
+    bool getIsRecording()
+    {
+        return isRecording;
+    }
 } // namespace espNow
