@@ -30,6 +30,33 @@
 #define GyroAxis_Sensitive (1)
 #endif
 
+enum
+{
+    GIRO_CONFIG_250_DEG_S = 0x00,
+    GIRO_CONFIG_500_DEG_S = 0x08,
+    GIRO_CONFIG_1000_DEG_S = 0x10,
+    GIRO_CONFIG_2000_DEG_S = 0x18,
+} giro_config_e;
+
+enum
+{
+    ACCEL_CONFIG_2_G = 0x00,
+    ACCEL_CONFIG_4_G = 0x08,
+    ACCEL_CONFIG_8_G = 0x10,
+    ACCEL_CONFIG_16_G = 0x18,
+} accel_config_e;
+
+typedef enum
+{
+    MPU6050_HIGHPASS_DISABLE,
+    MPU6050_HIGHPASS_5_HZ,
+    MPU6050_HIGHPASS_2_5_HZ,
+    MPU6050_HIGHPASS_1_25_HZ,
+    MPU6050_HIGHPASS_0_63_HZ,
+    MPU6050_HIGHPASS_UNUSED,
+    MPU6050_HIGHPASS_HOLD,
+} mpu6050_highpass_t;
+
 MPU6050::MPU6050(gpio_num_t scl, gpio_num_t sda, i2c_port_t port)
 {
     i2c = new I2C(scl, sda, port);
@@ -54,22 +81,23 @@ bool MPU6050::init()
     {
         return false;
     }
-    if (!i2c->slave_write(MPU6050_ADDR, GYRO_CONFIG, 0x18))
+
+    if (!i2c->slave_write(MPU6050_ADDR, GYRO_CONFIG, GIRO_CONFIG_2000_DEG_S))
     {
         return false;
     }
-    if (!i2c->slave_write(MPU6050_ADDR, ACCEL_CONFIG, 0x01))
+    if (!i2c->slave_write(MPU6050_ADDR, ACCEL_CONFIG, ACCEL_CONFIG_2_G + MPU6050_HIGHPASS_5_HZ))
     {
         return false;
     }
 
-    //set threshold to 1
+    // set threshold to 1
     if (!i2c->slave_write(MPU6050_ADDR, MPU6050_MOT_THR, 0x01))
     {
         return false;
     }
 
-    //set detection duration to 20ms
+    // set detection duration to 20ms
     if (!i2c->slave_write(MPU6050_ADDR, MPU6050_MOT_DUR, 0x14))
     {
         return false;
@@ -95,6 +123,33 @@ bool MPU6050::init()
     if (!i2c->slave_write(MPU6050_ADDR, INT_ENABLE, bufPinIntr))
     {
         return false;
+    }
+    return true;
+}
+
+bool MPU6050::setFastMotionCapture(bool enabled)
+{
+    if (enabled)
+    {
+        if (!i2c->slave_write(MPU6050_ADDR, GYRO_CONFIG, GIRO_CONFIG_250_DEG_S))
+        {
+            return false;
+        }
+        if (!i2c->slave_write(MPU6050_ADDR, ACCEL_CONFIG, ACCEL_CONFIG_2_G + MPU6050_HIGHPASS_DISABLE))
+        {
+            return false;
+        }
+    }
+    else
+    {
+        if (!i2c->slave_write(MPU6050_ADDR, GYRO_CONFIG, GIRO_CONFIG_2000_DEG_S))
+        {
+            return false;
+        }
+        if (!i2c->slave_write(MPU6050_ADDR, ACCEL_CONFIG, ACCEL_CONFIG_2_G + MPU6050_HIGHPASS_5_HZ))
+        {
+            return false;
+        }
     }
     return true;
 }

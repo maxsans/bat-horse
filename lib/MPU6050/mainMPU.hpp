@@ -3,7 +3,6 @@
 #include <functional>
 #include <string>
 
-
 namespace mpu
 {
     /**
@@ -19,4 +18,13 @@ namespace mpu
      * @return if succesful retunr ESP_OK, ESP_ERR otherwise
      */
     esp_err_t start(void);
+
+    /**
+     * @brief set fast motion capture
+     *
+     * @param enabled enable fast motion capture
+     *
+     * @return if succesful return ESP_OK, ESP_ERR otherwise
+     */
+    esp_err_t setFastMotionCapture(bool enabled);
 } // namespace mpu
