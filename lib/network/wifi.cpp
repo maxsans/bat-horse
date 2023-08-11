@@ -27,6 +27,7 @@ static const char *TAG_AP = "WIFI ACCESS POINT";
 */
 #define ESP_WIFI_STA_SSID WIFI_STA_SSID
 #define ESP_WIFI_STA_PASS WIFI_STA_PASS
+#define ESP_WIFI_STA_CHANNEL WIFI_STA_CHANNEL
 #define ESP_MAXIMUM_RETRY 10
 
 #define ESP_WIFI_AP_SSID WIFI_AP_SSID
@@ -85,6 +86,10 @@ static void wifi_ap_event_handler(void *arg, esp_event_base_t event_base,
             (wifi_event_ap_stadisconnected_t *)event_data;
         ESP_LOGI(TAG_AP, "station " MACSTR " leave, AID=%d", MAC2STR(event->mac),
                  event->aid);
+#if IS_BASE
+        // std::vector<uint8_t> macVector(event->mac, event->mac + 6);
+        // espNow::deletePeerAddress(macVector);
+#endif
     }
 }
 
@@ -113,12 +118,18 @@ namespace sta
         wifi_config_t wifi_config = {
             .sta =
                 {
-                    .ssid = ESP_WIFI_STA_SSID,
-                    .password = ESP_WIFI_STA_PASS,
-                    .threshold = {.authmode = ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD},
-                    .sae_pwe_h2e = WPA3_SAE_PWE_BOTH,
+                    .ssid = {},
+                    .password = {},
+                    .channel = ESP_WIFI_STA_CHANNEL,
+                    .threshold = {.authmode = ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD}
+                    // .sae_pwe_h2e = WPA3_SAE_PWE_BOTH,
+
                 },
         };
+        strcpy((char *)wifi_config.sta.ssid, ESP_WIFI_STA_SSID);
+        strcpy((char *)wifi_config.sta.password, ESP_WIFI_STA_PASS);
+
+        // printf("Wifi ssid: %s password: %s", wifi_config.sta.ssid, wifi_config.sta.password);
         ESP_RETURN_ON_ERROR(esp_wifi_set_config(WIFI_IF_STA, &wifi_config), TAG_STA,
                             "failed to set wifi sta configuration");
 
@@ -152,6 +163,10 @@ namespace ap
                            .required = false,
                        }},
         };
+        strcpy((char *)wifi_config.ap.ssid, ESP_WIFI_AP_SSID);
+        strcpy((char *)wifi_config.ap.password, ESP_WIFI_AP_PASS);
+        wifi_config.ap.ssid_len = strlen(ESP_WIFI_AP_SSID);
+
         if (strlen(ESP_WIFI_AP_PASS) == 0)
         {
             wifi_config.ap.authmode = WIFI_AUTH_OPEN;
@@ -197,7 +212,22 @@ namespace wifi
 
         ESP_RETURN_ON_ERROR(esp_wifi_start(), TAG,
                             "Failed to start the wifi interface");
-
+        wifi_config_t conf;
+        esp_wifi_get_config((wifi_interface_t)ESP_IF_WIFI_AP, &conf);
+        printf("ssid : ");
+        for (auto i : conf.ap.ssid)
+        {
+            char c = (char)i;
+            printf("%c", c);
+        }
+        printf("\n");
+        printf("pass : ");
+        for (auto i : conf.ap.password)
+        {
+            char c = (char)i;
+            printf("%c", c);
+        }
+        printf("\n");
         ESP_LOGI(TAG, "Starting wifi interface done");
         return ESP_OK;
     }
