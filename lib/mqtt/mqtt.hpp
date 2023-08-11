@@ -45,5 +45,5 @@ namespace mqtt
      * @param callbackFunction
      * @return esp_err_t
      */
-    esp_err_t subscribe(std::string &topic, std::function<void(std::string, std::string)> &callbackFunction);
+    esp_err_t subscribe(std::string &topic, std::function<void(std::string, std::string)> callbackFunction);
 } // namespace mqtt

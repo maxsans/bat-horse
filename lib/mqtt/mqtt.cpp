@@ -1,4 +1,5 @@
 #include "mqtt.hpp"
+#include "../../include/globals.hpp"
 
 #include <map>
 #include <esp_log.h>
@@ -8,7 +9,7 @@
 
 static const char *TAG = "MQTT";
 
-#define BROKER_URL "mqtt://test.tamere"
+#define BROKER_URL MQTT_BROKER_URL
 #define QOS 2
 
 bool isConnectedToBroker = false;
@@ -113,15 +114,16 @@ namespace mqtt
     esp_err_t start()
     {
         esp_mqtt_client_config_t mqtt_cfg = {
-            .broker = {.address = {.uri = BROKER_URL}}};
+            .broker = {.address = {.uri = BROKER_URL, .port = 1883}}, .task = {.priority = 3}};
 
         client = esp_mqtt_client_init(&mqtt_cfg);
         /* The last argument may be used to pass data to the event handler, in this example mqtt_event_handler */
-        esp_mqtt_client_register_event(client, static_cast<esp_mqtt_event_id_t>(ESP_EVENT_ANY_ID), mqtt_event_handler, NULL);
-        esp_mqtt_client_start(client);
+        ESP_RETURN_ON_ERROR(esp_mqtt_client_register_event(client, static_cast<esp_mqtt_event_id_t>(ESP_EVENT_ANY_ID), mqtt_event_handler, NULL), TAG, "failed to register mqtt event");
+        ESP_RETURN_ON_ERROR(esp_mqtt_client_start(client), TAG, "Failed to start mqtt client");
+        return ESP_OK;
     }
 
-    esp_err_t subscribe(std::string &topic, std::function<void(std::string, std::string)> &callbackFunction)
+    esp_err_t subscribe(std::string &topic, std::function<void(std::string, std::string)> callbackFunction)
     {
         if (!isConnectedToBroker)
         {
@@ -134,16 +136,30 @@ namespace mqtt
             {
                 mapCallbackTopic[topic] = callbackFunction;
                 ESP_LOGI(TAG, "success to subscribe to : %s", topic.c_str());
+                return ESP_OK;
             }
             else
             {
                 ESP_LOGI(TAG, "failed to subscribe to : %s", topic.c_str());
+                return ESP_FAIL;
             }
         }
+        return ESP_OK;
     }
 
     esp_err_t publish(std::string &topic, std::string &data)
     {
-        esp_mqtt_client_enqueue(client, topic.c_str(), data.c_str(), data.size(), QOS, false, false);
+        if (esp_mqtt_client_enqueue(client, topic.c_str(), data.c_str(), data.size(), QOS, false, true) != -1)
+        {
+            ESP_LOGI(TAG, "success to publish to : %s", topic.c_str());
+            return ESP_OK;
+        }
+        else
+        {
+            ESP_LOGI(TAG, "failed to publish to : %s", topic.c_str());
+            return ESP_FAIL;
+        }
+
+        return ESP_OK;
     }
 } // namespace mqtt
