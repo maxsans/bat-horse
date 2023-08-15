@@ -79,13 +79,6 @@ void sendDataHandler(void *parameter)
 
     ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 
-    short int status = 0;
-    mpu_get_int_status(&status);
-    // Serial.printf("test\n");
-    // if (status)
-    // {
-    //   Serial.printf("Intr");
-    // }
     short gyro[3],
         accel[3], sensors;
     unsigned char more;
@@ -123,7 +116,6 @@ void sendDataHandler(void *parameter)
       udpClient.endPacket();
 #endif
     }
-    // Comparaison avec la version précédente
     if (abs(data[5] - previousData[5]) > PRECISION_DETECTION || abs(data[6] - previousData[6]) > PRECISION_DETECTION || abs(data[7] - previousData[7]) > PRECISION_DETECTION)
     {
       if (startDetection)
@@ -133,30 +125,13 @@ void sendDataHandler(void *parameter)
       }
       else
       {
-        // Serial.printf("detection mouvement\n");
         if (!detection)
         {
           detection = true;
         }
-        // Serial.println("Received event, printing data:");
-        // for (int i = 0; i < 11; i++)
-        // {
-        //   Serial.print(data[i]);
-        //   Serial.print(" ");
-        // }
-        // Serial.println();
-
-        // Serial.println("Previous data:");
-        // for (int i = 0; i < 11; i++)
-        // {
-        //   Serial.print(previousData[i]);
-        //   Serial.print(" ");
-        // }
-        // Serial.println();
         int eventData = 1;
         xQueueSend(eventQueue, &eventData, 0);
 
-        // Mise à jour de la version précédente des données
         memcpy(previousData, data, sizeof(data));
       }
     }
@@ -201,7 +176,5 @@ void sleepTask(void *parameter)
       }
     }
   }
-
-  // Si un événement est reçu, la tâche se termine
   vTaskDelete(NULL);
 }
