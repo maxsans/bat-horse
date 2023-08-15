@@ -1,177 +1,99 @@
 #include <Arduino.h>
 #include <WiFi.h>
-#include <Wire.h>
 #include <esp_mpu.hpp>
 #include <inv_mpu.hpp>
+#include <cstdlib>
 #include <inv_mpu_dmp_motion_driver.hpp>
+#include "globals.hpp"
+#include "wifi.hpp"
 #include <mqtt.hpp>
+#include "mpu6050.hpp"
 
-
-
-// WiFi settings
-const char* ssid = "eir98829489";
-const char* password = "ejfCu3cpgS";
+static TaskHandle_t sendDataTask;
 
 // Server settings
-const char* serverIP = "192.168.1.125";
-const int serverPort = 5555;
-const int localPort = 1025;
+const char *serverIP = SERVER_IP;
+const int serverPort = SERVER_PORT;
+const int localPort = LOCAL_PORT;
 
 // Sensor settings
-const int sensorID = 9;
-const int sampleRate = 25;
-
-
-const char* data_topic = "bat_horse/data-" + sensorID +;
-
-// MPU interrupt pin
-const int sensorIntPin = 10;
-
-// Task queue for send_data tasks
-static TaskHandle_t sendDataTask;
+const int sensorID = SENSOR_ID;
+const char *data_topic = TOPIC_DATA;
 
 // Set as soon as we get an IP address
 static bool gotIP = false;
 
+static bool detection = false;
+
 static WiFiUDP udpClient;
+static Mqtt mqttClient(BROKER_URL, MQTT_PORT);
 
-void onWiFiEvent(WiFiEvent_t event);
-void initWiFi();
-int initSensor();
-void initSensorInterrupt();
-void sendDataHandler(void* parameter);
+const int sensorIntPin = SENSOR_INT_PIN;
+static bool startDetection = true;
+
+long previousData[11] = {0};
+QueueHandle_t eventQueue;
+
+void sendDataHandler(void *parameter);
 void heartbeatTick();
+void sleepTask(void *parameter);
+void networkTask(void *parameter);
 
-void setup() {
-      delay(5000);
-
+void setup()
+{
   Serial.begin(115200);
 
   Serial.printf("\n Sensor %d Startup! \n", sensorID);
 
-  // Setup WiFi
-  initWiFi();
+  xTaskCreatePinnedToCore(networkTask, "networkTask", 4096, NULL, 2, NULL, 0);
 
   // Initialize MPU sensor
-  if (initSensor()){
+  if (initSensor())
+  {
     Serial.printf("initSensor failed.\n");
     return;
   }
 
   // Initialize MPU sensor interrupt
-  initSensorInterrupt();
+  initSensorInterrupt(&sendDataTask);
 
   xTaskCreate(sendDataHandler, "sendDataTask", 4096, NULL, 1, &sendDataTask);
+
+  eventQueue = xQueueCreate(10, sizeof(int));
+  xTaskCreatePinnedToCore(sleepTask, "SleepTask", 4096, NULL, 1, NULL, 0);
+
+  Serial.printf("Initializing done\n");
 }
 
-void loop() {
+void loop()
+{
   // Do nothing here, work is done in tasks
 }
 
-void initWiFi() {
-  Serial.printf("Initializing WiFi\n");
+void sendDataHandler(void *parameter)
+{
+  bool status;
 
-  WiFi.onEvent(onWiFiEvent);
+  while (1)
+  {
 
-  WiFi.begin(ssid, password);
-
-  // Wait for WiFi connection
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(1000);
-    Serial.printf("Connecting to WiFi...\n");
-  }
-}
-
-int initSensor() {
-  Serial.printf("Initializing sensor\n");
-
-  Wire.begin();
-
-  int status;
-  if ((status = mpu_init(0)) != 0) {
-    Serial.printf("mpu_init failed. Status: %d\n", status);
-    return 1;
-  }
-
-  // Enable accelerometer and gyro sensors
-  if (mpu_set_sensors(INV_XYZ_ACCEL | INV_XYZ_GYRO)) {
-    Serial.printf("mpu_set_sensors failed\n");
-    return 1;
-  }
-
-  if (mpu_configure_fifo(INV_XYZ_GYRO | INV_XYZ_ACCEL)) {
-    Serial.printf("mpu_configure_fifo failed\n");
-    return 1;
-  }
-
-  if (mpu_set_sample_rate(100)) {
-    Serial.printf("mpu_set_sample_rate failed\n");
-    return 1;
-  }
-
-  Serial.printf("Uploading DMP firmware\n");
-
-  // Load DMP firmware
-  if (dmp_load_motion_driver_firmware()) {
-    Serial.printf("dmp_load_motion_driver_firmware failed\n");
-    return 1;
-  }
-
-  // Enable DMP features
-  if (dmp_enable_feature(DMP_FEATURE_6X_LP_QUAT | DMP_FEATURE_TAP |
-                         DMP_FEATURE_ANDROID_ORIENT | DMP_FEATURE_SEND_RAW_ACCEL |
-                         DMP_FEATURE_SEND_CAL_GYRO | DMP_FEATURE_GYRO_CAL)) {
-    Serial.printf("dmp_enable_feature failed\n");
-    return 1;
-  }
-
-  if (mpu_set_accel_fsr(4)) {
-    Serial.printf("mpu_set_accel_fsr failed\n");
-    return 1;
-  }
-
-  if (dmp_set_fifo_rate(sampleRate)) {
-    Serial.printf("dmp_set_fifo_rate failed\n");
-  }
-
-  // Start DMP processing
-  if (mpu_set_dmp_state(1)) {
-    Serial.printf("mpu_set_dmp_state failed\n");
-    return 1;
-  }
-
-  Serial.printf("MPU/DMP running\n");
-
-  return 0;
-}
-
-void initSensorInterrupt() {
-  Serial.printf("Initializing sensor interrupt\n");
-
-  pinMode(sensorIntPin, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(sensorIntPin), [] {
-    if (gotIP) {
-      xTaskNotifyFromISR(sendDataTask, 0, eNoAction, NULL);
-    }
-  }, FALLING);
-}
-
-void sendDataHandler(void* parameter) {
-  udpClient.begin(localPort);
-
-  while (1) {
     ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 
-    if (!gotIP) {
-      continue;
-    }
-
-    short gyro[3], accel[3], sensors;
+    short int status = 0;
+    mpu_get_int_status(&status);
+    // Serial.printf("test\n");
+    // if (status)
+    // {
+    //   Serial.printf("Intr");
+    // }
+    short gyro[3],
+        accel[3], sensors;
     unsigned char more;
     long quat[4];
     unsigned long timestamp;
 
-    if (dmp_read_fifo(gyro, accel, quat, &timestamp, &sensors, &more)) {
+    if (dmp_read_fifo(gyro, accel, quat, &timestamp, &sensors, &more))
+    {
       Serial.printf("read_fifo_failed \n");
       continue;
     }
@@ -189,41 +111,97 @@ void sendDataHandler(void* parameter) {
     data[9] = gyro[1];
     data[10] = gyro[2];
     data[11] = timestamp;
-
-
-// #ifdef MQTT
-String data_str;
-
-for (int i = 0; i < 12; ++i) {
-    data_str += String(data[i]);
-}
-
-mqtt::publish(data_topic, data_str);
-// #endif
-#ifdef UDP
-    udpClient.beginPacket(serverIP, serverPort);
-    udpClient.write((uint8_t*)data, 12 * sizeof(long));
-    udpClient.endPacket();
+    if (gotIP)
+    {
+// Serial.printf("Send data\n");
+#if MQTT
+      mqttClient.publish(data_topic, (const char *)data);
 #endif
+#if UDP
+      udpClient.beginPacket(serverIP, serverPort);
+      udpClient.write((uint8_t *)data, 12 * sizeof(long));
+      udpClient.endPacket();
+#endif
+    }
+    // Comparaison avec la version précédente
+    if (abs(data[5] - previousData[5]) > PRECISION_DETECTION || abs(data[6] - previousData[6]) > PRECISION_DETECTION || abs(data[7] - previousData[7]) > PRECISION_DETECTION)
+    {
+      if (startDetection)
+      {
+        startDetection = false;
+        memcpy(previousData, data, sizeof(data));
+      }
+      else
+      {
+        // Serial.printf("detection mouvement\n");
+        if (!detection)
+        {
+          detection = true;
+        }
+        // Serial.println("Received event, printing data:");
+        // for (int i = 0; i < 11; i++)
+        // {
+        //   Serial.print(data[i]);
+        //   Serial.print(" ");
+        // }
+        // Serial.println();
 
+        // Serial.println("Previous data:");
+        // for (int i = 0; i < 11; i++)
+        // {
+        //   Serial.print(previousData[i]);
+        //   Serial.print(" ");
+        // }
+        // Serial.println();
+        int eventData = 1;
+        xQueueSend(eventQueue, &eventData, 0);
+
+        // Mise à jour de la version précédente des données
+        memcpy(previousData, data, sizeof(data));
+      }
+    }
   }
 }
 
-void onWiFiEvent(WiFiEvent_t event) {
-  switch (event) {
-    case SYSTEM_EVENT_STA_GOT_IP:
-      Serial.printf("Event: SYSTEM_EVENT_STA_GOT_IP\n");
-      gotIP = true;
-      break;
-    case SYSTEM_EVENT_STA_CONNECTED:
-      Serial.printf("Event: SYSTEM_EVENT_STA_CONNECTED\n");
-      break;
-    case SYSTEM_EVENT_STA_DISCONNECTED:
-      Serial.printf("Event: SYSTEM_EVENT_STA_DISCONNECTED\n");
-      gotIP = false;
-      break;
-    default:
-      Serial.printf("Unexpected WiFi event: %d\n", event);
-      break;
+void networkTask(void *parameter)
+{
+  while (!detection)
+  {
+    delay(1000); // wait 1s
   }
+  initWiFi(&gotIP);
+#if UDP
+  udpClient.begin(localPort);
+#endif
+#if MQTT
+  mqttClient.connect(CLIENT_ID);
+#endif
+  for (;;)
+  {
+    mqttClient.loop();
+    delay(10);
+  }
+  vTaskDelete(NULL);
+}
+
+void sleepTask(void *parameter)
+{
+  int eventData;
+  for (;;)
+  {
+    if (TIMEOUT_DETECTION)
+    {
+      if (xQueueReceive(eventQueue, &eventData, pdMS_TO_TICKS(TIMEOUT_DETECTION)) == pdFALSE)
+      {
+
+        detection = false;
+        Serial.printf("start sleep\n");
+        esp_sleep_enable_timer_wakeup(SLEEP_TIME);
+        esp_deep_sleep_start();
+      }
+    }
+  }
+
+  // Si un événement est reçu, la tâche se termine
+  vTaskDelete(NULL);
 }
