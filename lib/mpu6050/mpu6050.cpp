@@ -1,5 +1,5 @@
 #include <Arduino.h>
-#include "globals.hpp"
+#include "../../include/globals.hpp"
 #include "inv_mpu.hpp"
 #include "inv_mpu_dmp_motion_driver.hpp"
 #include "mpu6050.hpp"
@@ -8,7 +8,7 @@
 #define MAX_RETRY 10
 
 // MPU interrupt pin
-const int sensorIntPin = SENSOR_INT_PIN;
+const int sensorIntPin = MPU_INT_PIN;
 const int sampleRate = SAMPLE_RATE;
 static TaskHandle_t *mpuSendDataTask;
 

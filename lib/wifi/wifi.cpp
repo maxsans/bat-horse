@@ -1,9 +1,9 @@
 #include <Arduino.h>
 #include "wifi.hpp"
 #include <WiFi.h>
-#include "globals.hpp"
+#include "../../include/globals.hpp"
 
-const char *ssid = SSID;        // eir98829489
+const char *ssid = SSID;         // eir98829489
 const char *password = PASSWORD; // ejfCu3cpgS
 
 bool *espGotIp;
@@ -39,10 +39,16 @@ void initWiFi(bool *isGotIP)
 
   WiFi.begin(ssid, password);
 
+  int index = 0;
   // Wait for WiFi connection
   while (WiFi.status() != WL_CONNECTED)
   {
-    delay(1000);
-    Serial.printf("Connecting to WiFi...\n");
+    delay(10);
+    index++;
+    if (index == 10)
+    {
+      Serial.printf("Connecting to WiFi...\n");
+      index = 0;
+    }
   }
 }
