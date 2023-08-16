@@ -2,18 +2,13 @@
 #define __I2C_H__
 
 #include <Wire.h>
+#include "../../include/globals.hpp"
 
 #define I2C_SLEEP_TIME 5
 
-// SDA on GPIO21
-#define I2C_SDA_MUX PERIPHS_IO_MUX_GPIO21_U
-#define I2C_SDA_FUNC FUNC_GPIO21
-#define I2C_SDA_PIN 6
+#define I2C_SDA_PIN MPU_SDA_PIN
 
-// SCK on GPIO22
-#define I2C_SCK_MUX PERIPHS_IO_MUX_GPIO22_U
-#define I2C_SCK_FUNC FUNC_GPIO22
-#define I2C_SCK_PIN 7
+#define I2C_SCK_PIN MPU_SCL_PIN
 
 #define esp_i2c_read() digitalRead(I2C_SDA_PIN)
 
@@ -26,7 +21,7 @@ uint8_t i2c_readByte(void);
 void i2c_writeByte(uint8_t data);
 
 int i2c_readBytes(uint8_t slave_addr, uint8_t reg_addr,
-                  uint8_t length, uint8_t* data);
+                  uint8_t length, uint8_t *data);
 
 int i2c_writeBytes(uint8_t slave_addr, uint8_t reg_addr,
                    uint8_t length, uint8_t const *data);
