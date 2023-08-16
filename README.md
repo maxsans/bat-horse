@@ -35,7 +35,7 @@ The `globals.h` file plays a pivotal role in customizing and configuring the pro
 ### Server UDP Settings
 
 ```c
-#define SERVER_IP "192.168.137.123"
+#define SERVER_IP "192.168.137.1"
 #define SERVER_PORT 5555
 #define LOCAL_PORT 1025
 ```
@@ -44,7 +44,7 @@ The `globals.h` file plays a pivotal role in customizing and configuring the pro
 ### Server MQTT Settings
 
 ```c
-#define BROKER_URL "192.168.137.123"
+#define BROKER_URL "192.168.137.1"
 #define MQTT_PORT 1883
 #define MQTT_TOPIC_URI "motion-capture/sensor-" SENSOR_ID_STRING
 ```

@@ -11,16 +11,16 @@
 #define PASSWORD "12345678" // ejfCu3cpgS - Ub@33?09+
 
 // Network transport
-#define MQTT true
+#define MQTT false
 #define UDP true
 
 // Server UDP settings
-#define SERVER_IP "192.168.137.123"
+#define SERVER_IP "192.168.137.1"
 #define SERVER_PORT 5555
 #define LOCAL_PORT 1025
 
 // Server MQTT settings
-#define BROKER_URL "192.168.137.123"
+#define BROKER_URL "192.168.137.1"
 #define MQTT_PORT 1883
 #define MQTT_TOPIC_URI "motion-capture/sensor-" SENSOR_ID_STRING
 
