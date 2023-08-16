@@ -11,6 +11,12 @@
 
 static TaskHandle_t sendDataTask;
 
+String sensor_id_str = String(SENSOR_ID);
+
+// MQTT settings
+String topic_data = MQTT_TOPIC_URI + sensor_id_str;
+String client_id = "sensor-client_" + sensor_id_str;
+
 // Server settings
 const char *serverIP = SERVER_IP;
 const int serverPort = SERVER_PORT;
@@ -18,7 +24,6 @@ const int localPort = LOCAL_PORT;
 
 // Sensor settings
 const int sensorID = SENSOR_ID;
-const char *data_topic = TOPIC_DATA;
 
 // Set as soon as we get an IP address
 static bool gotIP = false;
@@ -28,7 +33,7 @@ static bool detection = false;
 static WiFiUDP udpClient;
 static Mqtt mqttClient(BROKER_URL, MQTT_PORT);
 
-const int sensorIntPin = SENSOR_INT_PIN;
+const int sensorIntPin = MPU_INT_PIN;
 static bool startDetection = true;
 
 long previousData[11] = {0};
@@ -43,7 +48,7 @@ void setup()
 {
   Serial.begin(115200);
 
-  Serial.printf("\n Sensor %d Startup! \n", sensorID);
+  Serial.printf("\nSensor %d Startup! \n", sensorID);
 
   xTaskCreatePinnedToCore(networkTask, "networkTask", 4096, NULL, 2, NULL, 0);
 
@@ -62,7 +67,7 @@ void setup()
   eventQueue = xQueueCreate(10, sizeof(int));
   xTaskCreatePinnedToCore(sleepTask, "SleepTask", 4096, NULL, 1, NULL, 0);
 
-  Serial.printf("Initializing done\n");
+  Serial.printf("Initializing done \n");
 }
 
 void loop()
@@ -88,6 +93,7 @@ void sendDataHandler(void *parameter)
     if (dmp_read_fifo(gyro, accel, quat, &timestamp, &sensors, &more))
     {
       Serial.printf("read_fifo_failed \n");
+      delay(10); // wait 10ms
       continue;
     }
 
@@ -108,7 +114,7 @@ void sendDataHandler(void *parameter)
     {
 // Serial.printf("Send data\n");
 #if MQTT
-      mqttClient.publish(data_topic, (const char *)data);
+      mqttClient.publish(topic_data.c_str(), (const char *)data);
 #endif
 #if UDP
       udpClient.beginPacket(serverIP, serverPort);
@@ -149,7 +155,7 @@ void networkTask(void *parameter)
   udpClient.begin(localPort);
 #endif
 #if MQTT
-  mqttClient.connect(CLIENT_ID);
+  mqttClient.connect(client_id.c_str());
 #endif
   for (;;)
   {
