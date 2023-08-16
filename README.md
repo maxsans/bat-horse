@@ -1,6 +1,6 @@
 # Motion sensor (ESP_32 + MPU6050)
 
-### The purpose of this sensor is to retrieve motion data from an MPU6050 sensor and transmit it to an MQTT broker or UDP server. The sensor includes a sleep function to switch off the sensor when not in use.
+The purpose of this sensor is to retrieve motion data from an MPU6050 sensor and transmit it to an MQTT broker or UDP server. The sensor includes a sleep function to switch off the sensor when not in use.
 
 
 ## Project Configuration
@@ -75,13 +75,13 @@ The `globals.h` file plays a pivotal role in customizing and configuring the pro
 
 ## Difference between transmission by MQTT and by UDP
 
-### The MQTT protocol uses a different protocol to UDP. MQTT uses the TCP protocol, so packets are slow when sent at very high speed. There is a test carried out on an EMQX broker:
+The MQTT protocol uses a different protocol to UDP. MQTT uses the TCP protocol, so packets are slow when sent at very high speed. There is a test carried out on an EMQX broker:
 
 | MQTT             | UDP               |
 |:-:|:-:|
 | 250 messages/min | 1500 messages/min |
 
-### These values are only valid for a single sensor. So if you have two sensors, you will receive 500 messages/min on an MQTT broker and 3000 messages/min on a UDP server.
+These values are only valid for a single sensor. So if you have two sensors, you will receive 500 messages/min on an MQTT broker and 3000 messages/min on a UDP server.
 
 
 ### Example Output
