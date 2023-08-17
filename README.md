@@ -73,6 +73,10 @@ The `globals.h` file plays a pivotal role in customizing and configuring the pro
 #define SLEEP_TIME 60 * 1000000
 ```
 
+## Quick start
+
+This project uses the platformio core. If you wish to use this configuration, please refer to the platformio documentation: https://docs.platformio.org/en/latest/platforms/espressif32.html
+
 ## Difference between transmission by MQTT and by UDP
 
 The MQTT protocol uses a different protocol to UDP. MQTT uses the TCP protocol, so packets are slow when sent at very high speed. There is a test carried out on an EMQX broker:
@@ -84,7 +88,7 @@ The MQTT protocol uses a different protocol to UDP. MQTT uses the TCP protocol, 
 These values are only valid for a single sensor. So if you have two sensors, you will receive 500 messages/min on an MQTT broker and 3000 messages/min on a UDP server.
 
 
-### Example Output
+## Example Output
 
 ```
 Sensor 9 Startup!
@@ -100,5 +104,3 @@ Event: SYSTEM_EVENT_STA_CONNECTED
 Event: SYSTEM_EVENT_STA_GOT_IP
 Connected to MQTT broker
 ```
-
-
