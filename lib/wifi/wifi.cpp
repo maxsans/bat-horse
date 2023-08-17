@@ -45,7 +45,7 @@ void initWiFi(bool *isGotIP)
   {
     delay(10);
     index++;
-    if (index == 10)
+    if (index == 500) // every 5s
     {
       Serial.printf("Connecting to WiFi...\n");
       index = 0;
