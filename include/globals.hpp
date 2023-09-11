@@ -7,15 +7,15 @@
 #define SAMPLE_RATE 25
 
 // WiFi settings
-#define SSID "Nom"          // eir98829489 - partage
-#define PASSWORD "12345678" // ejfCu3cpgS - Ub@33?09+
+#define SSID "Redmi"        // eir98829489 - partage
+#define PASSWORD "maxlefou" // ejfCu3cpgS - Ub@33?09+
 
 // Network transport
 #define MQTT false
 #define UDP true
 
 // Server UDP settings
-#define SERVER_IP "192.168.137.1"
+#define SERVER_IP "192.168.94.25"
 #define SERVER_PORT 5555
 #define LOCAL_PORT 1025
 
@@ -34,4 +34,4 @@
 
 // Sleep configuration
 #define TIMEOUT_DETECTION 0 * 1000 // if is set to zero, sleep mode is disabled
-#define SLEEP_TIME 60 * 1000000    // 60s in microseconds
+#define SLEEP_TIME 10 * 1000000    // 60s in microseconds
