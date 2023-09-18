@@ -7,8 +7,8 @@
 #define SAMPLE_RATE 25
 
 // WiFi settings
-#define SSID "Redmi"        // eir98829489 - partage
-#define PASSWORD "maxlefou" // ejfCu3cpgS - Ub@33?09+
+#define SSID "BaseAp"       // eir98829489 - partage
+#define PASSWORD "12345678" // ejfCu3cpgS - Ub@33?09+
 
 // Network transport
 #define MQTT false
