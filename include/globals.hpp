@@ -15,7 +15,7 @@
 #define UDP true
 
 // Server UDP settings
-#define SERVER_IP "192.168.94.25"
+#define SERVER_IP "192.168.1.200"
 #define SERVER_PORT 5555
 #define LOCAL_PORT 1025
 
