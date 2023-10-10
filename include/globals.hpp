@@ -2,20 +2,23 @@
 #define STRINGIFY(x) #x
 
 // Sensor settings
-#define SENSOR_ID 9
+#define SENSOR_ID 4
 #define SENSOR_ID_STRING STRINGIFY(SENSOR_ID)
-#define SAMPLE_RATE 25
+#define SAMPLE_RATE 35
 
 // WiFi settings
-#define SSID "BaseAp"       // eir98829489 - partage
-#define PASSWORD "12345678" // ejfCu3cpgS - Ub@33?09+
+#define SSID "Redmi"        // eir98829489 - partage
+#define PASSWORD "maxlefou" // ejfCu3cpgS - Ub@33?09+
 
 // Network transport
 #define MQTT false
 #define UDP true
+#define STATIC_ADDRESS false
 
 // Server UDP settings
-#define SERVER_IP "192.168.1.200"
+#if STATIC_ADDRESS
+#define SERVER_IP "192.168.86.25"
+#endif
 #define SERVER_PORT 5555
 #define LOCAL_PORT 1025
 

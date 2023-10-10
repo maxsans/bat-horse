@@ -18,7 +18,9 @@ String topic_data = MQTT_TOPIC_URI + sensor_id_str;
 String client_id = "sensor-client_" + sensor_id_str;
 
 // Server settings
+#if STATIC_ADDRESS
 const char *serverIP = SERVER_IP;
+#endif
 const int serverPort = SERVER_PORT;
 const int localPort = LOCAL_PORT;
 
@@ -101,14 +103,14 @@ void sendDataHandler(void *parameter)
     data[0] = sensorID;
     data[1] = quat[0];
     data[2] = quat[1];
-    data[3] = quat[2];
-    data[4] = quat[3];
+    data[3] = quat[3];
+    data[4] = -quat[2];
     data[5] = accel[0];
-    data[6] = accel[1];
-    data[7] = accel[2];
+    data[6] = accel[2];
+    data[7] = -accel[1];
     data[8] = gyro[0];
-    data[9] = gyro[1];
-    data[10] = gyro[2];
+    data[9] = gyro[2];
+    data[10] = -gyro[1];
     data[11] = timestamp;
     for (auto d : data)
     {
@@ -123,7 +125,11 @@ void sendDataHandler(void *parameter)
       mqttClient.publish(topic_data.c_str(), (const char *)data);
 #endif
 #if UDP
+#if STATIC_ADDRESS
       udpClient.beginPacket(serverIP, serverPort);
+#else
+      udpClient.beginPacket(getGatewayAddress(), serverPort);
+#endif
       udpClient.write((uint8_t *)data, 12 * sizeof(long));
       udpClient.endPacket();
 #endif
