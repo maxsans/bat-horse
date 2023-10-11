@@ -53,12 +53,12 @@ void initWiFi(bool *isGotIP)
   }
 }
 
-const char *getGatewayAddress()
+String getGatewayAddress()
 {
   if (WiFi.status() == WL_CONNECTED)
   {
     IPAddress gatewayIP = WiFi.gatewayIP();
-    return gatewayIP.toString().c_str();
+    return gatewayIP.toString();
   }
   else
   {

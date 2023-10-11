@@ -128,7 +128,8 @@ void sendDataHandler(void *parameter)
 #if STATIC_ADDRESS
       udpClient.beginPacket(serverIP, serverPort);
 #else
-      udpClient.beginPacket(getGatewayAddress(), serverPort);
+      String gatewayAddress = getGatewayAddress();
+      udpClient.beginPacket(gatewayAddress.c_str(), serverPort);
 #endif
       udpClient.write((uint8_t *)data, 12 * sizeof(long));
       udpClient.endPacket();
