@@ -112,12 +112,12 @@ void sendDataHandler(void *parameter)
     data[9] = gyro[2];
     data[10] = -gyro[1];
     data[11] = timestamp;
-    // for (auto d : data)
-    // {
-    //   Serial.print(d);
-    //   Serial.print(" | ");
-    // }
-    // Serial.println("");
+    for (auto d : data)
+    {
+      Serial.print(d);
+      Serial.print(" | ");
+    }
+    Serial.println("");
     if (gotIP)
     {
 // Serial.printf("Send data\n");
@@ -157,6 +157,11 @@ void sendDataHandler(void *parameter)
   }
 }
 
+void setMpuToSleep()
+{
+  mpu_set_sensors(0);
+}
+
 void networkTask(void *parameter)
 {
   while (!detection)
@@ -190,7 +195,8 @@ void sleepTask(void *parameter)
 
         detection = false;
         Serial.printf("start sleep\n");
-        esp_sleep_enable_timer_wakeup(SLEEP_TIME);
+        setMpuToSleep();
+        esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_UNDEFINED);
         esp_deep_sleep_start();
       }
     }

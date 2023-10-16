@@ -7,8 +7,8 @@
 #define SAMPLE_RATE 35
 
 // WiFi settings
-#define SSID "Bathorse_network1"        // eir98829489 - partage
-#define PASSWORD "network!" // ejfCu3cpgS - Ub@33?09+
+#define SSID "Bathorse_network1" // eir98829489 - partage
+#define PASSWORD "network!"      // ejfCu3cpgS - Ub@33?09+
 
 // Network transport
 #define MQTT false
@@ -36,5 +36,5 @@
 #define PRECISION_DETECTION 100 // default is 100
 
 // Sleep configuration
-#define TIMEOUT_DETECTION 0 * 1000 // if is set to zero, sleep mode is disabled
-#define SLEEP_TIME 10 * 1000000    // 60s in microseconds
+#define TIMEOUT_DETECTION 60 * 10 * 1000 // if is set to zero, sleep mode is disabled
+// #define SLEEP_TIME 10 * 1000000    // 60s in microseconds
