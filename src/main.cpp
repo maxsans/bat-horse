@@ -112,12 +112,12 @@ void sendDataHandler(void *parameter)
     data[9] = gyro[2];
     data[10] = -gyro[1];
     data[11] = timestamp;
-    for (auto d : data)
-    {
-      Serial.print(d);
-      Serial.print(" | ");
-    }
-    Serial.println("");
+    // for (auto d : data)
+    // {
+    //   Serial.print(d);
+    //   Serial.print(" | ");
+    // }
+    // Serial.println("");
     if (gotIP)
     {
 // Serial.printf("Send data\n");
