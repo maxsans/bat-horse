@@ -30,7 +30,7 @@ const int sensorID = SENSOR_ID;
 // Set as soon as we get an IP address
 static bool gotIP = false;
 
-static bool detection = false;
+static bool isInitSensor = false;
 
 static WiFiUDP udpClient;
 static Mqtt mqttClient(BROKER_URL, MQTT_PORT);
@@ -38,38 +38,16 @@ static Mqtt mqttClient(BROKER_URL, MQTT_PORT);
 const int sensorIntPin = MPU_INT_PIN;
 static bool startDetection = true;
 
-long previousData[11] = {0};
-QueueHandle_t eventQueue;
+// long previousData[11] = {0};
+// QueueHandle_t eventQueue;
 
 void sendDataHandler(void *parameter);
-void heartbeatTick();
-void sleepTask(void *parameter);
 void networkTask(void *parameter);
 
 void setup()
 {
-  Serial.begin(115200);
-
-  Serial.printf("\nSensor %d Startup! \n", sensorID);
-
+  Serial.begin(9600);
   xTaskCreatePinnedToCore(networkTask, "networkTask", 4096, NULL, 2, NULL, 0);
-
-  // Initialize MPU sensor
-  if (initSensor())
-  {
-    Serial.printf("initSensor failed.\n");
-    return;
-  }
-
-  // Initialize MPU sensor interrupt
-  initSensorInterrupt(&sendDataTask);
-
-  xTaskCreate(sendDataHandler, "sendDataTask", 4096, NULL, 1, &sendDataTask);
-
-  eventQueue = xQueueCreate(10, sizeof(int));
-  xTaskCreatePinnedToCore(sleepTask, "SleepTask", 4096, NULL, 1, NULL, 0);
-
-  Serial.printf("Initializing done \n");
 }
 
 void loop()
@@ -135,71 +113,92 @@ void sendDataHandler(void *parameter)
       udpClient.endPacket();
 #endif
     }
-    if (abs(data[5] - previousData[5]) > PRECISION_DETECTION || abs(data[6] - previousData[6]) > PRECISION_DETECTION || abs(data[7] - previousData[7]) > PRECISION_DETECTION)
-    {
-      if (startDetection)
-      {
-        startDetection = false;
-        memcpy(previousData, data, sizeof(data));
-      }
-      else
-      {
-        if (!detection)
-        {
-          detection = true;
-        }
-        int eventData = 1;
-        xQueueSend(eventQueue, &eventData, 0);
+    // if (abs(data[5] - previousData[5]) > PRECISION_DETECTION || abs(data[6] - previousData[6]) > PRECISION_DETECTION || abs(data[7] - previousData[7]) > PRECISION_DETECTION)
+    // {
+    //   if (startDetection)
+    //   {
+    //     startDetection = false;
+    //     memcpy(previousData, data, sizeof(data));
+    //   }
+    //   else
+    //   {
+    //     if (!detection)
+    //     {
+    //       detection = true;
+    //     }
+    //     int eventData = 1;
+    //     xQueueSend(eventQueue, &eventData, 0);
 
-        memcpy(previousData, data, sizeof(data));
-      }
-    }
+    //     memcpy(previousData, data, sizeof(data));
+    //   }
+    // }
   }
 }
 
-void setMpuToSleep()
+void setEspToSleep()
 {
-  mpu_set_sensors(0);
+  Serial.printf("start sleep\n");
+  if (isInitSensor)
+  {
+    mpu_set_sensors(0);
+  }
+  esp_sleep_enable_timer_wakeup(SLEEP_TIME);
+  esp_deep_sleep_start();
 }
 
 void networkTask(void *parameter)
 {
-  while (!detection)
-  {
-    delay(1000); // wait 1s
-  }
   initWiFi(&gotIP);
+  bool previousStateGotIp = false;
+  int retry = 0;
+  for (;;)
+  {
+
+    if (previousStateGotIp != gotIP)
+    {
+      if (gotIP)
+      {
+        // Initialize MPU sensor
+        if (initSensor())
+        {
+          Serial.printf("initSensor failed.\n");
+          setEspToSleep();
+        }
+
+        // Initialize MPU sensor interrupt
+        initSensorInterrupt(&sendDataTask);
+
+        xTaskCreate(sendDataHandler, "sendDataTask", 4096, NULL, 1, &sendDataTask);
+
+        // eventQueue = xQueueCreate(10, sizeof(int));
+        isInitSensor = true;
+        Serial.printf("Initializing done \n");
+        Serial.printf("\nSensor %d Startup! \n", sensorID);
 #if UDP
-  udpClient.begin(localPort);
+        udpClient.begin(localPort);
 #endif
+        retry = 0;
+      }
+      previousStateGotIp = gotIP;
+    }
+    else if (!gotIP && retry == RETRY_MAX_WIFI)
+    {
+      setEspToSleep();
+    }
+    else if (!gotIP)
+    {
+      Serial.printf("Wifi: Connection failed retry\n");
+      retry++;
+    }
+    delay(1000);
+  }
 #if MQTT
   mqttClient.connect(client_id.c_str());
-#endif
   for (;;)
   {
     mqttClient.loop();
     delay(10);
   }
-  vTaskDelete(NULL);
-}
-
-void sleepTask(void *parameter)
-{
-  int eventData;
-  for (;;)
-  {
-    if (TIMEOUT_DETECTION)
-    {
-      if (xQueueReceive(eventQueue, &eventData, pdMS_TO_TICKS(TIMEOUT_DETECTION)) == pdFALSE)
-      {
-
-        detection = false;
-        Serial.printf("start sleep\n");
-        setMpuToSleep();
-        esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_UNDEFINED);
-        esp_deep_sleep_start();
-      }
-    }
-  }
+#endif
   vTaskDelete(NULL);
 }

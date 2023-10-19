@@ -40,17 +40,17 @@ void initWiFi(bool *isGotIP)
   WiFi.begin(ssid, password);
 
   int index = 0;
-  // Wait for WiFi connection
-  while (WiFi.status() != WL_CONNECTED)
-  {
-    delay(10);
-    index++;
-    if (index == 500) // every 5s
-    {
-      Serial.printf("Connecting to WiFi...\n");
-      index = 0;
-    }
-  }
+  // // Wait for WiFi connection
+  // while (WiFi.status() != WL_CONNECTED)
+  // {
+  //   delay(10);
+  //   index++;
+  //   if (index == 500) // every 5s
+  //   {
+  //     Serial.printf("Connecting to WiFi...\n");
+  //     index = 0;
+  //   }
+  // }
 }
 
 String getGatewayAddress()

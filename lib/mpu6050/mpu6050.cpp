@@ -15,7 +15,6 @@ static TaskHandle_t *mpuSendDataTask;
 int initSensor()
 {
     Serial.printf("Initializing sensor\n");
-
     Wire.begin();
 
     int status;
