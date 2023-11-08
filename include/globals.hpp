@@ -7,8 +7,8 @@
 #define SAMPLE_RATE 35
 
 // WiFi settings
-#define SSID "Bathorse_network1" // eir98829489 - partage
-#define PASSWORD "network!"      // ejfCu3cpgS - Ub@33?09+
+#define SSID "Name"
+#define PASSWORD "12345678"
 #define RETRY_MAX_WIFI 3
 
 // Network transport
@@ -18,13 +18,13 @@
 
 // Server UDP settings
 #if STATIC_ADDRESS
-#define SERVER_IP "192.168.86.25"
+#define SERVER_IP "192.168.1.1"
 #endif
 #define SERVER_PORT 5555
 #define LOCAL_PORT 1025
 
 // Server MQTT settings
-#define BROKER_URL "192.168.137.1"
+#define BROKER_URL "192.168.1.1"
 #define MQTT_PORT 1883
 #define MQTT_TOPIC_URI "motion-capture/sensor-" SENSOR_ID_STRING
 
@@ -33,9 +33,5 @@
 #define MPU_SCL_PIN 7
 #define MPU_INT_PIN 10
 
-// Movement detection
-#define PRECISION_DETECTION 100 // default is 100
-
 // Sleep configuration
-// #define TIMEOUT_DETECTION 60 * 10 * 1000 // if is set to zero, sleep mode is disabled
-#define SLEEP_TIME 3 * 1000000 // 60s in microseconds
+#define SLEEP_TIME 60 * 1000000 // 60s in microseconds

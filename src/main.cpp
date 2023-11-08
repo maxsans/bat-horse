@@ -38,9 +38,6 @@ static Mqtt mqttClient(BROKER_URL, MQTT_PORT);
 const int sensorIntPin = MPU_INT_PIN;
 static bool startDetection = true;
 
-// long previousData[11] = {0};
-// QueueHandle_t eventQueue;
-
 void sendDataHandler(void *parameter);
 void networkTask(void *parameter);
 
@@ -98,7 +95,6 @@ void sendDataHandler(void *parameter)
     Serial.println("");
     if (gotIP)
     {
-// Serial.printf("Send data\n");
 #if MQTT
       mqttClient.publish(topic_data.c_str(), (const char *)data);
 #endif
@@ -113,25 +109,6 @@ void sendDataHandler(void *parameter)
       udpClient.endPacket();
 #endif
     }
-    // if (abs(data[5] - previousData[5]) > PRECISION_DETECTION || abs(data[6] - previousData[6]) > PRECISION_DETECTION || abs(data[7] - previousData[7]) > PRECISION_DETECTION)
-    // {
-    //   if (startDetection)
-    //   {
-    //     startDetection = false;
-    //     memcpy(previousData, data, sizeof(data));
-    //   }
-    //   else
-    //   {
-    //     if (!detection)
-    //     {
-    //       detection = true;
-    //     }
-    //     int eventData = 1;
-    //     xQueueSend(eventQueue, &eventData, 0);
-
-    //     memcpy(previousData, data, sizeof(data));
-    //   }
-    // }
   }
 }
 
@@ -170,7 +147,6 @@ void networkTask(void *parameter)
 
         xTaskCreate(sendDataHandler, "sendDataTask", 4096, NULL, 1, &sendDataTask);
 
-        // eventQueue = xQueueCreate(10, sizeof(int));
         isInitSensor = true;
         Serial.printf("Initializing done \n");
         Serial.printf("\nSensor %d Startup! \n", sensorID);

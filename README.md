@@ -1,6 +1,6 @@
 # Motion sensor (ESP_32 + MPU6050)
 
-The purpose of this sensor is to retrieve motion data from an MPU6050 sensor and transmit it to an MQTT broker or UDP server. The sensor includes a sleep function to switch off the sensor when not in use.
+The purpose of this sensor is to retrieve motion data from an MPU6050 sensor and transmit it to an MQTT broker or UDP server. The sensor includes a sleep function to switch off the sensor when the wifi AP is not detected.
 
 
 ## Project Configuration
@@ -8,24 +8,21 @@ The purpose of this sensor is to retrieve motion data from an MPU6050 sensor and
 The `globals.h` file plays a pivotal role in customizing and configuring the project. Adjust the variables in this file to ensure the project functions seamlessly in your specific environment. Here's an overview of the key configuration variables:
 
 ### Sensor Settings
-
 ```c
-#define SENSOR_ID 9
-#define SENSOR_ID_STRING STRINGIFY(SENSOR_ID)
-#define SAMPLE_RATE 25
+#define SENSOR_ID 1
+#define SAMPLE_RATE 25 // Sample rate for MPU6050
 ```
 
 
 ### WiFi Settings
-
 ```c
 #define SSID "Name"       
 #define PASSWORD "12345678" 
+#define RETRY_MAX_WIFI 3
 ```
 
 
 ### Network Transport
-
 ```c
 #define MQTT false
 #define UDP true
@@ -33,25 +30,25 @@ The `globals.h` file plays a pivotal role in customizing and configuring the pro
 
 
 ### Server UDP Settings
-
 ```c
-#define SERVER_IP "192.168.137.1"
+#define STATIC_ADDRESS_SERVER_UDP false
+#if STATIC_ADDRESS
+#define SERVER_IP "192.168.1.1"
+#endif
 #define SERVER_PORT 5555
 #define LOCAL_PORT 1025
 ```
 
 
 ### Server MQTT Settings
-
 ```c
-#define BROKER_URL "192.168.137.1"
+#define BROKER_URL "192.168.1.1"
 #define MQTT_PORT 1883
 #define MQTT_TOPIC_URI "motion-capture/sensor-" SENSOR_ID_STRING
 ```
 
 
 ### MPU Configuration Pin
-
 ```c
 #define MPU_SDA_PIN 6
 #define MPU_SCL_PIN 7
@@ -59,18 +56,10 @@ The `globals.h` file plays a pivotal role in customizing and configuring the pro
 ```
 
 
-### Motion Detection
-
-```c
-#define PRECISION_DETECTION 100
-```
-
-
 ### Sleep Configuration
-
+How many time the ESP32 is on deep sleep
 ```c
-#define TIMEOUT_DETECTION 0 * 1000
-#define SLEEP_TIME 60 * 1000000
+#define SLEEP_TIME 60 * 1000000 // 60s in microseconds
 ```
 
 ## Quick start
