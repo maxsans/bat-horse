@@ -1,0 +1,141 @@
+/* Reset some default browser styles */
+body, h1, h2, p, ul, li, table {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  background-color: #F7F6CF;
+  color: #333; /* Text color */
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.title-container {
+    margin: 20px;
+    padding: 20px;
+    background-color: #B6D8F2; /* Container background color */
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+    justify-content: space-between;
+    padding-bottom: 10px;
+}
+.box-button-container{
+    margin-top: 20px;
+    display: flex;
+    justify-content: space-evenly;
+}
+
+.box-table{
+    display: flex;
+    justify-content: center;
+}
+
+h1 {
+  font-size: 24px;
+  color: #333;
+  text-align: center;
+}
+
+button {
+  background-color: #5784BA;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 10px 20px;
+  margin: 5px;
+  cursor: pointer;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+button:hover {
+  background-color: #9AC8EB;
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 34px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #F4CFDF; /* Slider background color */
+  -webkit-transition: 0.4s;
+  transition: 0.4s;
+  border-radius: 34px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 26px;
+  width: 26px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  -webkit-transition: 0.4s;
+  transition: 0.4s;
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background-color: #5784BA; /* Slider background color when checked */
+}
+
+input:checked + .slider:before {
+  -webkit-transform: translateX(26px);
+  -ms-transform: translateX(26px);
+  transform: translateX(26px);
+}
+
+#recordingStatus {
+  margin-top: 20px;
+  font-size: 18px;
+  text-align: center;
+}
+
+#sensorTable {
+  margin-top: 20px;
+  width: 80%; /* Set the table width */
+  background-color: white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  padding: 10px;
+  text-align: left;
+  border-bottom: 1px solid #333;
+}
+
+th {
+  background-color: #333; /* Table header background color */
+  color: white;
+}
+
+/* Add alternating row colors */
+tr:nth-child(even) {
+  background-color: #F7F6CF; /* Alternate row background color */
+}
