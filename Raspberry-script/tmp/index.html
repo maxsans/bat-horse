@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bat-Horse</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="container">
+      <div class="title-container">
+        <h1>Bat-Horse</h1>
+        <div class="box-button-container">
+          <button id="startRecord">Start Record</button>
+          <button id="stopRecord">Stop Record</button>
+          <label class="switch">
+            <input type="checkbox" id="statusCheckbox" />
+            <span class="slider round"></span>
+          </label>
+        </div>
+        <div id="recordingStatus"></div>
+      </div>
+      <div class="box-table">
+        <div id="sensorTable">
+          <h2>Sensor Status</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Sensor</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Sensor status rows will be added here -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
