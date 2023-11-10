@@ -6,19 +6,19 @@ This project focuses on developing a motion capture system for horses using acce
 
 The project encompasses several components, each addressing specific aspects:
 
-### Motion Sensor (https://github.com/maxsans/bat-horse/tree/Motion-sensor)
+### [Motion Sensor](https://github.com/maxsans/bat-horse/tree/Motion-sensor/Motion-sensor)
 
 The motion sensor component deals with the development and integration of sensors, particularly the ESP32 and MPU6050 accelerometers and gyroscopes. These sensors are essential for capturing horse movements accurately.
 
-### Raspberry Pi Script and Web Interface (https://github.com/maxsans/bat-horse/tree/Raspberry-script)
+### [Raspberry Pi Script and Web Interface](https://github.com/maxsans/bat-horse/tree/Raspberry-script/Raspberry-script)
 
 This part involves the creation of a script to manage data transfer from the motion sensors to a Raspberry Pi. A web interface is also designed to control data recording and visualization. The primary aim is to enable users to start and stop recordings easily.
 
-### Cloud Server Script (https://github.com/maxsans/bat-horse/tree/Server-script)
+### [Cloud Server Script](https://github.com/maxsans/bat-horse/tree/Server-script/Server-script)
 
 The cloud server script manages the data received from the Raspberry Pi. It handles real-time data transmission, ensuring that the data is accessible from anywhere with an internet connection. Additionally, it allows the sharing of saved data files across the network.
 
-### User Application (https://github.com/maxsans/bat-horse/tree/User-script)
+### [User Application](https://github.com/maxsans/bat-horse/tree/User-script/User-script)
 
 The user application provides a user-friendly interface for interacting with the motion capture system. It includes buttons for managing data visualization, enabling and disabling live data transmission.
 
