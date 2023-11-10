@@ -1,63 +1,52 @@
 # Server-script
 
-## Preparing Files
+This Python script is a server created with Flask that aims to receive files from a Raspberry Pi after data recording by a user. These files are stored on a server (NAS) that hosts the interns' websites. Subsequently, users can access and manage files on the server from the Python application at `/computer_app/app.exe`.
 
-1. Add the files created on the Raspberry Pi to the `/datas` folder within the application.
+## Usage
 
-2. Launch the `Bewegungsfelder.exe` application located in the `/bewegungsfelder-app` folder. This application handles the 3D visualization of the data.
+1. Add files to the server:
+   - You can add files using the `/file` route with a POST request. Files must be included in the request with the appropriate filename. The server checks if the file has been received correctly and stores it in the specified directory.
 
-3. Next, run the 'app.exe' application.
+   !! The Raspberry Pi does not have the function to send files to the server
 
-## Modifying the Server Address
+2. Get the list of files:
+   - You can obtain the list of all files stored on the server using the `/files` route with a GET request. The server will return the list of file names as a JSON response.
 
-The server address is already preconfigured, but you can change it at the application's startup.
+3. Get a specific file:
+   - To retrieve a specific file, use the `/file/<file_name>` route with a GET request. The server will return the specified file as a download.
 
-## How the Application Works
+4. Delete a file:
+   - You can delete a file using the `/delete/<file_name>` route with a POST request. If the file exists, the server will delete it and return a response indicating that the file has been removed. If the file does not exist, the server will return a message indicating that the file was not found.
 
-This Python application is designed to send previously recorded data from the Raspberry Pi to `Bewegungsfelder.exe`. A timestamp is recorded to ensure smooth visualization.
+## Installation and Execution
 
-The application retrieves data files from the `datas` folder and sends them to port 5555 to `Bewegungsfelder.exe`.
+To run localy this server, you need to have Flask and other dependencies installed. You can install them using the following command:
 
-The application's interface includes two options: `Fake Data` and `Start`.
+```shell
+pip -r requirements.txt
+```
 
-- **Fake Data**: This option allows you to send fake data with the IDs of sensors present in the data. It enables you to set up the sensors on `Bewegungsfelder.exe` with their IDs. Once the positioning is correct in the visualization application, you can stop the fake data and press `Start` to send real data.
-
-## Managing Files on the Server
-
-The application's interface offers a feature to retrieve data from a server. However, the Raspberry Pi has not been implemented to send files to the server yet. For now, there is nothing to retrieve. Once files are available on the server, and the server's address is configured, the application will be able to retrieve the files and save them in the 'datas' folder.
-
-## Application Features
-
-The application offers several features to select local or remote files for visualization, initiate live visualization with fake data, and stop live visualization.
-
-- **Choose a Local File**: You can select a local data file for visualization. If the file exists, you can load it by clicking the "Confirm" button.
-
-- **Delete a Local File**: You have the option to delete a local file by selecting it in the list of local files and clicking the "Delete" button.
-
-- **Choose an Online File**: You can select an online file from the remote server. If the file is available, you can load it by clicking the "Confirm" button.
-
-- **Delete an Online File**: You can delete an online file by selecting it in the list of online files and clicking the "Delete" button.
-
-- **Init with Fake Data**: You can initiate visualization with fake data by clicking the "Init with fake data" button.
-
-- **Start Live Visualization**: You can start live data visualization by clicking the "Start" button.
-
-- **Stop Live Visualization**: You can stop live data visualization by clicking the "Stop" button.
-
-## Server Settings
-
-The application uses a remote server to retrieve files online and perform live operations. You can modify the server's address by changing the `url` variable in the source code. Here's how to do it:
+Once Flask is installed, you can run the server by executing the Python script. The server will listen on port 3005 by default. You can change the port by modifying the following line
 
 ```python
-# Server URL
-url = "http://nimbus-idir.ie"  # Replace this URL with your server's address
-
-
+app.run(host='127.0.0.1', port=3005, debug=DEBUG)
 ```
 
-## Start app for dev 
+To run the server :
 
-```
-pip install -r requirements.txt
+```shell
 python app.py
 ```
+
+
+# Deployment on the Server
+For the next deployment, the Docker files are already configured, so there should be no need to modify them.
+
+However, if additional dependencies are added, don't forget to include them in the `requirements.txt` file.
+
+If folder management is modified on the server, make sure to update the access path in the Docker Compose file on the following line:
+
+`device: /home/server/bathorse/datas_online`
+
+This part of the access path concerns the location of the data on the server. Ensure that the path is correctly configured so the server can access the data without any issues.
+

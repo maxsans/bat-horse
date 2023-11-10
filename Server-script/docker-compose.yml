@@ -1,0 +1,26 @@
+version: '2.2'
+services:
+  bathorse_api:
+    container_name: bathorse
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    image: bathorse/api:backend
+    restart: always
+    ports:
+      - "3005:3005"   # Port server : Port container docker
+    volumes:  # Folder with the files, inside docker container
+      - uploads:/app/datas_online/
+    environment:
+      prod: prod
+
+
+volumes:
+  uploads:    # Folder with files, on the server
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: /home/server/bathorse/datas_online/
+  
+   
