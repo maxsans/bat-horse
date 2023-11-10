@@ -1,4 +1,4 @@
-# Server-script
+# User-script
 
 ## Preparing Files
 
