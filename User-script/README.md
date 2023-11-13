@@ -1,5 +1,7 @@
 # User-script
 
+**Use `User_guide.pdf` to start using this tool**
+
 ## Preparing Files
 
 1. Add the files created on the Raspberry Pi to the `/datas` folder within the application.
@@ -51,8 +53,6 @@ The application uses a remote server to retrieve files online and perform live o
 ```python
 # Server URL
 url = "http://nimbus-idir.ie"  # Replace this URL with your server's address
-
-
 ```
 
 ## Start app for dev 
